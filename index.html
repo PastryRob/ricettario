@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ricettario — Roberto Zampetti</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F8F5F0;
+  --surface: #FFFFFF;
+  --accent: #1A1A1A;
+  --green: #2D5A3D;
+  --green-light: #EBF2EE;
+  --amber: #8B5E3C;
+  --amber-light: #F5EDE4;
+  --blue: #2C4A6E;
+  --blue-light: #E8EDF5;
+  --red-light: #FCEFEF;
+  --red: #8B2E2E;
+  --border: rgba(0,0,0,0.08);
+  --text: #1A1A1A;
+  --text-muted: #6B6B6B;
+  --text-faint: #A0A0A0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* LAYOUT */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 280px; min-width: 280px;
+  background: var(--accent);
+  display: flex; flex-direction: column;
+  transition: transform 0.3s ease;
+  z-index: 100;
+}
+.sidebar-brand {
+  padding: 2rem 1.5rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-brand .chef { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: #fff; letter-spacing: 0.02em; }
+.sidebar-brand .subtitle { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px; }
+.sidebar-search {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-search input {
+  width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; padding: 8px 12px; color: #fff; font-family: 'DM Mono', monospace;
+  font-size: 12px; outline: none;
+}
+.sidebar-search input::placeholder { color: rgba(255,255,255,0.3); }
+.sidebar-search input:focus { border-color: rgba(255,255,255,0.25); }
+.cat-filter {
+  padding: 0.75rem 1.5rem;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.cat-pill {
+  font-size: 10px; padding: 3px 10px; border-radius: 20px; cursor: pointer;
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+.cat-pill.active, .cat-pill:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.25); }
+.recipe-list { flex: 1; overflow-y: auto; }
+.recipe-list::-webkit-scrollbar { width: 3px; }
+.recipe-list::-webkit-scrollbar-track { background: transparent; }
+.recipe-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+.recipe-item {
+  padding: 1rem 1.5rem; cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.recipe-item:hover { background: rgba(255,255,255,0.04); }
+.recipe-item.active { background: rgba(255,255,255,0.07); border-left-color: rgba(255,255,255,0.5); }
+.recipe-item .r-name { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 400; color: rgba(255,255,255,0.9); line-height: 1.3; }
+.recipe-item .r-cat { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
+.add-recipe-btn {
+  margin: 1rem 1.5rem; padding: 10px;
+  background: transparent; border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5); font-family: 'DM Mono', monospace;
+  font-size: 11px; cursor: pointer; border-radius: 4px;
+  letter-spacing: 0.05em; transition: all 0.15s;
+}
+.add-recipe-btn:hover { border-color: rgba(255,255,255,0.35); color: rgba(255,255,255,0.8); }
+
+/* MAIN */
+.main { flex: 1; overflow-y: auto; background: var(--bg); }
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+
+.recipe-hero {
+  background: var(--surface);
+  padding: 2.5rem 3rem 2rem;
+  border-bottom: 1px solid var(--border);
+}
+.recipe-hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.recipe-name { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; line-height: 1.15; color: var(--text); }
+.recipe-name em { font-style: italic; }
+.badges { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.badge { font-size: 10px; padding: 3px 10px; border-radius: 2px; letter-spacing: 0.08em; font-weight: 400; }
+.badge-cat { background: var(--accent); color: #fff; }
+.badge-diff { background: var(--amber-light); color: var(--amber); }
+.badge-time { background: var(--blue-light); color: var(--blue); }
+
+.portion-ctrl {
+  display: flex; align-items: center; gap: 0;
+  border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+  flex-shrink: 0;
+}
+.portion-ctrl button {
+  width: 34px; height: 34px; background: var(--bg); border: none; cursor: pointer;
+  font-size: 16px; color: var(--text-muted); transition: background 0.1s;
+}
+.portion-ctrl button:hover { background: #ece9e3; }
+.portion-ctrl .p-count {
+  min-width: 50px; text-align: center; font-size: 13px;
+  color: var(--text); border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  padding: 0 8px; line-height: 34px;
+}
+.portion-ctrl .p-label { font-size: 10px; color: var(--text-faint); display: block; }
+
+/* CONTENT */
+.recipe-content { padding: 2rem 3rem 3rem; }
+.section-title {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 1rem; margin-top: 2rem;
+  padding-top: 1.5rem; border-top: 1px solid var(--border);
+}
+.section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+.component-block { margin-bottom: 1.25rem; }
+.component-name {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.5rem; padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.ing-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.ing-row:last-child { border-bottom: none; }
+.ing-name { color: var(--text); }
+.ing-amount { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.steps-list { display: flex; flex-direction: column; gap: 1rem; }
+.step-row { display: flex; gap: 1rem; }
+.step-n {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--text-muted); flex-shrink: 0; margin-top: 1px;
+}
+.step-text { color: var(--text); line-height: 1.75; font-size: 13px; }
+
+.note-box {
+  background: var(--amber-light); border-left: 3px solid var(--amber);
+  padding: 1rem 1.25rem; font-size: 13px; color: var(--amber);
+  line-height: 1.75; border-radius: 0 4px 4px 0;
+}
+
+.allg-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.allg-tag { font-size: 11px; padding: 3px 10px; background: var(--red-light); color: var(--red); border-radius: 2px; }
+
+/* MOBILE MENU */
+.menu-toggle {
+  display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200;
+  width: 40px; height: 40px; background: var(--accent); border: none;
+  border-radius: 4px; cursor: pointer; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+}
+.menu-toggle span { width: 18px; height: 1.5px; background: #fff; display: block; transition: all 0.2s; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; }
+
+/* EMPTY STATE */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-faint); gap: 0.5rem; }
+.empty p { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-style: italic; }
+.empty small { font-size: 11px; }
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; top: 0; left: 0; height: 100%; transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .overlay.open { display: block; }
+  .menu-toggle { display: flex; }
+  .recipe-hero { padding: 4rem 1.25rem 1.5rem; }
+  .recipe-name { font-size: 28px; }
+  .recipe-hero-top { flex-direction: column; }
+  .recipe-content { padding: 1.5rem 1.25rem 3rem; }
+}
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+  <span></span><span></span><span></span>
+</button>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="chef">Roberto Zampetti</div>
+      <div class="subtitle">Dessert al piatto</div>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="Cerca ricetta…" id="searchInput" oninput="filterRecipes()">
+    </div>
+    <div class="cat-filter" id="catFilter"></div>
+    <div class="recipe-list" id="recipeList"></div>
+    <button class="add-recipe-btn" onclick="showAddModal()">+ aggiungi ricetta</button>
+  </div>
+
+  <div class="main" id="mainContent"></div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;padding:2rem;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;">
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;margin-bottom:1.5rem;">Nuova ricetta</h2>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <input id="f-name" placeholder="Nome ricetta" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;">
+      <input id="f-cat" placeholder="Categoria (es. Cioccolato, Agrumi…)" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <input id="f-diff" placeholder="Difficoltà" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;">
+        <input id="f-time" placeholder="Tempo" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;">
+        <input id="f-port" placeholder="Porzioni" type="number" min="1" value="4" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;">
+      </div>
+      <textarea id="f-ing" placeholder="Ingredienti (una riga per ingrediente, es: Cioccolato fondente 70% | 120 | g)" rows="6" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;resize:vertical;line-height:1.6;"></textarea>
+      <textarea id="f-steps" placeholder="Procedimento (una riga per passo)" rows="5" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;resize:vertical;line-height:1.6;"></textarea>
+      <input id="f-allg" placeholder="Allergeni separati da virgola" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;">
+      <textarea id="f-note" placeholder="Note tecniche" rows="3" style="padding:10px;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;">
+      <button onclick="saveRecipe()" style="flex:1;padding:10px;background:#1A1A1A;color:#fff;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;">Salva ricetta</button>
+      <button onclick="closeModal()" style="padding:10px 16px;background:transparent;border:1px solid #ddd;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'ricettario_v1';
+
+const defaultRecipes = [
+  {
+    id: 1, name: "Soufflé al cioccolato fondente", category: "Cioccolato",
+    difficolta: "Alta", tempo: "45 min", porzioni: 4,
+    allergeni: ["Glutine", "Uova", "Latte"],
+    components: [
+      { name: "Base al cioccolato", ingredients: [
+        { name: "Cioccolato fondente 70%", amount: 120, unit: "g" },
+        { name: "Burro", amount: 60, unit: "g" },
+        { name: "Farina 00", amount: 30, unit: "g" },
+        { name: "Zucchero semolato", amount: 80, unit: "g" },
+      ]},
+      { name: "Meringa italiana", ingredients: [
+        { name: "Albumi", amount: 4, unit: "pz" },
+        { name: "Zucchero semolato", amount: 100, unit: "g" },
+        { name: "Acqua", amount: 35, unit: "g" },
+      ]}
+    ],
+    steps: [
+      "Sciogliere il cioccolato con il burro a bagnomaria fino a 50°C. Lasciar intiepidire.",
+      "Preparare la meringa italiana: cuocere lo zucchero con l'acqua a 121°C e versare a filo sugli albumi montati.",
+      "Incorporare la farina setacciata al cioccolato, poi aggiungere la meringa in tre tempi con movimenti dal basso verso l'alto.",
+      "Imburrare e zuccherare gli stampi. Riempire a ¾. Cuocere a 190°C per 11 minuti."
+    ],
+    note: "Non aprire il forno nei primi 8 minuti. Servire immediatamente. Per una versione più intensa, sostituire il 20% di fondente con cacao in polvere."
+  },
+  {
+    id: 2, name: "Cremoso al lime e basilico", category: "Agrumi",
+    difficolta: "Media", tempo: "3 h + riposo", porzioni: 6,
+    allergeni: ["Uova", "Latte"],
+    components: [
+      { name: "Cremoso", ingredients: [
+        { name: "Succo di lime", amount: 80, unit: "ml" },
+        { name: "Zeste di lime", amount: 2, unit: "pz" },
+        { name: "Panna fresca 35%", amount: 200, unit: "ml" },
+        { name: "Uova intere", amount: 2, unit: "pz" },
+        { name: "Tuorli", amount: 3, unit: "pz" },
+        { name: "Zucchero", amount: 90, unit: "g" },
+        { name: "Gelatina in fogli 200 Bloom", amount: 4, unit: "g" },
+      ]},
+      { name: "Olio al basilico", ingredients: [
+        { name: "Foglie di basilico", amount: 30, unit: "g" },
+        { name: "Olio di semi di girasole", amount: 100, unit: "ml" },
+      ]}
+    ],
+    steps: [
+      "Idratare la gelatina in acqua fredda. Riscaldare panna, succo e zeste di lime a 80°C.",
+      "Miscelare uova, tuorli e zucchero. Versare il liquido caldo a filo mescolando, poi cuocere a 82°C.",
+      "Fuori dal fuoco sciogliere la gelatina. Raffreddare a 40°C, mixare con il minipimer per 2 minuti.",
+      "Colare negli stampi. Abbattere e conservare a -18°C.",
+      "Per l'olio al basilico: sbollentare le foglie 20 secondi, raffreddare in ghiaccio. Frullare con l'olio e passare al colino fine."
+    ],
+    note: "Il cremoso va servito a -2°C al cuore. L'olio al basilico va preparato al momento del servizio per mantenere il colore."
+  },
+  {
+    id: 3, name: "Variazione cocco, banana e lime", category: "Frutta tropicale",
+    difficolta: "Alta", tempo: "24 h + riposo", porzioni: 10,
+    allergeni: ["Glutine", "Latte", "Frutta a guscio"],
+    components: [
+      { name: "Gelatina al lime", ingredients: [
+        { name: "Succo di lime", amount: 150, unit: "g" },
+        { name: "Sciroppo 1:1", amount: 150, unit: "g" },
+        { name: "Agar agar", amount: 5, unit: "g" },
+      ]},
+      { name: "Mattonella alla banana", ingredients: [
+        { name: "Purea di ananas", amount: 100, unit: "g" },
+        { name: "Purea di banana", amount: 400, unit: "g" },
+        { name: "Gelatina animale", amount: 15, unit: "g" },
+      ]},
+      { name: "Gelato cocco banana lime", ingredients: [
+        { name: "Latte fresco", amount: 687, unit: "g" },
+        { name: "Zucchero semolato", amount: 637, unit: "g" },
+        { name: "Buccia di lime", amount: 5, unit: "g" },
+        { name: "Succo di lime", amount: 125, unit: "g" },
+        { name: "Purea di banane", amount: 437, unit: "g" },
+        { name: "Latte di cocco", amount: 1500, unit: "g" },
+      ]},
+      { name: "Spuma al cocco", ingredients: [
+        { name: "Panna", amount: 210, unit: "g" },
+        { name: "Latte di cocco", amount: 330, unit: "g" },
+        { name: "Zucchero semolato", amount: 45, unit: "g" },
+        { name: "Xantana", amount: 1, unit: "g" },
+        { name: "Gelatina animale", amount: 2, unit: "g" },
+      ]},
+      { name: "Frolla alle banane", ingredients: [
+        { name: "Burro", amount: 200, unit: "g" },
+        { name: "Zucchero semolato", amount: 100, unit: "g" },
+        { name: "Zucchero di canna", amount: 87, unit: "g" },
+        { name: "Purea di banane", amount: 200, unit: "g" },
+        { name: "Polvere di mandorla", amount: 100, unit: "g" },
+        { name: "Farina debole", amount: 300, unit: "g" },
+        { name: "Sale fino", amount: 3, unit: "g" },
+      ]},
+      { name: "Banane caramellate", ingredients: [
+        { name: "Banane a cubetti", amount: 200, unit: "g" },
+        { name: "Zucchero semolato", amount: 40, unit: "g" },
+        { name: "Burro", amount: 10, unit: "g" },
+      ]},
+    ],
+    steps: [
+      "Gelatina al lime: portare ad ebollizione i tre ingredienti, far freddare e frullare. Conservare in frigo.",
+      "Mattonella alla banana: idratare la gelatina in acqua fredda. Scaldare una piccola parte di purea e sciogliervi la gelatina. Montare, stendere e congelare.",
+      "Gelato cocco banana lime: portare ad ebollizione il latte con lo zucchero e la buccia di lime. Una volta freddo inserire la purea frullata con il succo di lime e per ultimo il latte di cocco. Emulsionare bene, versare nei bicchieri da Pacojet e congelare. All'occorrenza pacostare.",
+      "Spuma al cocco: scaldare una piccola parte di panna, sciogliervi la gelatina e far freddare. Unire al resto degli ingredienti, emulsionare e far riposare una notte. L'indomani frustare e versare in un sifone con una carica CREAM.",
+      "Frolla alle banane: amalgamare il burro con gli zuccheri e il sale, aggiungere gradualmente la purea di banane e per ultimo le polveri. Ad impasto pronto, stendere tra 2 fogli di carta da forno e congelare.",
+      "Banane caramellate: sciogliere a secco lo zucchero, aggiungere il burro e le banane, spadellati qualche minuto e freddare rapidamente. Conservare in frigo."
+    ],
+    note: "Preparazione multi-componente da organizzare su due giorni. La spuma va preparata il giorno prima. Il gelato va pacostato al momento del servizio."
+  },
+  {
+    id: 4, name: "La cassata… in altre prospettive", category: "Siciliano",
+    difficolta: "Alta", tempo: "48 h + riposo", porzioni: 10,
+    allergeni: ["Glutine", "Uova", "Latte", "Frutta a guscio"],
+    components: [
+      { name: "Chantilly di ricotta", ingredients: [
+        { name: "Ricotta vaccina", amount: 265, unit: "g" },
+        { name: "Ricotta di pecora", amount: 265, unit: "g" },
+        { name: "Zucchero semolato", amount: 110, unit: "g" },
+        { name: "Gelatina animale", amount: 9, unit: "g" },
+        { name: "Sale", amount: 1, unit: "g" },
+        { name: "Panna semimontata", amount: 353, unit: "g" },
+      ]},
+      { name: "Cake al pistacchio", ingredients: [
+        { name: "Burro", amount: 200, unit: "g" },
+        { name: "Pasta pistacchio Feudo San Biagio", amount: 130, unit: "g" },
+        { name: "Zucchero semolato", amount: 200, unit: "g" },
+        { name: "Zucchero di canna", amount: 80, unit: "g" },
+        { name: "Zucchero invertito", amount: 30, unit: "g" },
+        { name: "Buccia d'arancia", amount: 5, unit: "g" },
+        { name: "Vaniglia in bacche", amount: 1, unit: "g" },
+        { name: "Uova intere", amount: 330, unit: "g" },
+        { name: "Fecola di patate", amount: 40, unit: "g" },
+        { name: "Farina debole", amount: 230, unit: "g" },
+        { name: "Lievito chimico", amount: 8, unit: "g" },
+        { name: "Sale", amount: 1, unit: "g" },
+      ]},
+      { name: "Spuma alla mandorla", ingredients: [
+        { name: "Acqua", amount: 400, unit: "g" },
+        { name: "Pasta mandorla Val di Noto Agrimontana", amount: 100, unit: "g" },
+        { name: "Zucchero semolato", amount: 50, unit: "g" },
+        { name: "Mandorle amare", amount: 8, unit: "g" },
+        { name: "Gelatina animale", amount: 10, unit: "g" },
+      ]},
+      { name: "Sorbetto al mandarino candito", ingredients: [
+        { name: "Acqua", amount: 330, unit: "g" },
+        { name: "Zucchero semolato", amount: 122, unit: "g" },
+        { name: "Stabilizzante", amount: 3, unit: "g" },
+        { name: "Succo di mandarino", amount: 360, unit: "g" },
+        { name: "Scorza di mandarino a cubetto Agrimontana", amount: 120, unit: "g" },
+      ]},
+      { name: "Tuile al cioccolato", ingredients: [
+        { name: "Acqua", amount: 120, unit: "g" },
+        { name: "Burro 82% mg", amount: 75, unit: "g" },
+        { name: "Sciroppo di glucosio", amount: 60, unit: "g" },
+        { name: "Cioccolato fondente 66%", amount: 75, unit: "g" },
+        { name: "Cacao in polvere", amount: 15, unit: "g" },
+        { name: "Pectina", amount: 3, unit: "g" },
+        { name: "Zucchero semolato", amount: 225, unit: "g" },
+      ]},
+      { name: "Mandarino azotato", ingredients: [
+        { name: "Mandarino pelato a vivo", amount: 100, unit: "g" },
+      ]},
+      { name: "Marzapane", ingredients: [
+        { name: "Mandorle bianche d'Avola", amount: 250, unit: "g" },
+        { name: "Zucchero semolato", amount: 500, unit: "g" },
+        { name: "Sciroppo di glucosio 42 DE", amount: 50, unit: "g" },
+      ]},
+    ],
+    steps: [
+      "Chantilly di ricotta: lavorare energicamente le ricotte con zucchero e sale, alleggerire con la panna semimontata e aggiungere la gelatina sciolta in un pochino di composto. Far riposare in frigorifero per almeno 2 ore.",
+      "Cake al pistacchio: montare il burro con pasta di pistacchio, aromi e sale. Aggiungere gli zuccheri e, gradualmente, le uova senza smettere di montare. Infine, con una spatola inserire manualmente le polveri setacciate. Versarne 1000 g in una cornice rettangolare 40x30 cm e cuocere a 180°C per 20 minuti, di cui 10 a valvola chiusa.",
+      "Spuma alla mandorla: unire i primi quattro ingredienti ed emulsionare bene. Filtrare, scaldarne una piccola parte in cui sciogliere la gelatina precedentemente idratata in acqua fredda e conservare per 6 ore in frigorifero. Frustare bene il composto, versare in un sifone, inserire 2 cariche cream e spuntorarlo nel piatto.",
+      "Sorbetto al mandarino candito: portare acqua, zucchero e stabilizzante a 70°C e far raffreddare rapidamente. Raggiunti i 30°C, aggiungere succo di mandarino e mandarino candito. Frullare bene e mantecare.",
+      "Tuile al cioccolato: portare ad ebollizione l'acqua con il burro, aggiungere sciroppo di glucosio e copertura, riportare il tutto ad ebollizione. Poi inserire cacao, zucchero e pectina precedentemente miscelati, riportando il tutto ad ebollizione. Filtrare e conservare in positivo. Stendere su Silpat e cuocere a 175°C per 10 minuti.",
+      "Mandarino azotato: inserire gli spicchi di mandarino pelati a vivo nell'azoto liquido, attendere un minuto e frantumare il più possibile. Conservare in congelatore.",
+      "Marzapane: ammollare in acqua fredda le mandorle per 30 minuti, sgoccioларle e unire zucchero e glucosio. Amalgamare bene e passare per 5 volte in raffinatrice, stringendo di volta in volta i rulli. Stendere una piccola parte di composto tra due fogli di carta a 2 mm, togliere un foglio, inumidire la superficie e spolverarla di polvere di pistacchio. Tagliare e conservare in contenitore ermetico.",
+      "Composizione e decorazione: fare due spuntoni di chantilly alla ricotta e uno di spuma alla mandorla, adagiarvi lateralmente tre dischetti di marzapane, decorare con cake al pistacchio, arancia candita, tuile al cioccolato, sorbetto al mandarino candito e, per ultimo, il mandarino azotato."
+    ],
+    note: "Ricetta da libro 'La Pasticceria da Ristorazione Contemporanea'. Preparazione su 2 giorni. La spuma va preparata il giorno prima e conservata 6 ore in frigo prima di essere caricata nel sifone. Il mandarino azotato va eseguito al momento del servizio."
+  },
+  {
+    id: 5, name: "Semifreddo cioccolato latte e passion fruit", category: "Semifreddo",
+    difficolta: "Alta", tempo: "24 h + riposo", porzioni: 10,
+    allergeni: ["Uova", "Latte", "Arachidi"],
+    components: [
+      { name: "Semifreddo ciocc. latte e passion fruit", ingredients: [
+        { name: "Tuorli", amount: 135, unit: "g" },
+        { name: "Zucchero semolato", amount: 65, unit: "g" },
+        { name: "Destrosio", amount: 28, unit: "g" },
+        { name: "Acqua", amount: 23, unit: "g" },
+        { name: "Meringa all'italiana", amount: 130, unit: "g" },
+        { name: "Purea passion fruit", amount: 80, unit: "g" },
+        { name: "Copertura al latte 40%", amount: 150, unit: "g" },
+        { name: "Panna semimontata", amount: 391, unit: "g" },
+      ]},
+      { name: "Cremoso al passion fruit", ingredients: [
+        { name: "Purea passion fruit", amount: 200, unit: "g" },
+        { name: "Zucchero invertito", amount: 25, unit: "g" },
+        { name: "Gelatina animale", amount: 11, unit: "g" },
+        { name: "Copertura bianca 35%", amount: 350, unit: "g" },
+        { name: "Burro di cacao", amount: 50, unit: "g" },
+        { name: "Panna liquida", amount: 400, unit: "g" },
+      ]},
+      { name: "Salsa mou", ingredients: [
+        { name: "Zucchero semolato", amount: 250, unit: "g" },
+        { name: "Panna liquida", amount: 210, unit: "g" },
+        { name: "Burro", amount: 40, unit: "g" },
+        { name: "Vaniglia", amount: 1, unit: "g" },
+      ]},
+      { name: "Sable al cacao", ingredients: [
+        { name: "Burro", amount: 230, unit: "g" },
+        { name: "Zucchero semolato", amount: 200, unit: "g" },
+        { name: "Farina debole", amount: 350, unit: "g" },
+        { name: "Cacao", amount: 100, unit: "g" },
+        { name: "Sale", amount: 2, unit: "g" },
+      ]},
+      { name: "Meringa per semifreddo", ingredients: [
+        { name: "Acqua", amount: 140, unit: "g" },
+        { name: "Zucchero semolato", amount: 450, unit: "g" },
+        { name: "Albumi", amount: 240, unit: "g" },
+        { name: "Destrosio", amount: 120, unit: "g" },
+      ]},
+      { name: "Spugna al Couer de Guanaja", ingredients: [
+        { name: "Acqua", amount: 70, unit: "g" },
+        { name: "Zucchero semolato", amount: 45, unit: "g" },
+        { name: "Copertura 80%", amount: 140, unit: "g" },
+        { name: "Albume", amount: 145, unit: "g" },
+      ]},
+      { name: "Arachidi caramellati", ingredients: [
+        { name: "Arachidi salati", amount: 400, unit: "g" },
+        { name: "Acqua", amount: 70, unit: "g" },
+        { name: "Zucchero semolato", amount: 300, unit: "g" },
+      ]},
+      { name: "Gelatina passione", ingredients: [
+        { name: "Purea passion fruit", amount: 150, unit: "g" },
+        { name: "Zucchero semolato", amount: 50, unit: "g" },
+        { name: "Agar agar", amount: 2, unit: "g" },
+      ]},
+    ],
+    steps: [
+      "Semifreddo: cuocere a 82°C i primi 4 ingredienti, unire alla copertura al latte precedentemente destabilizzata con una parte di panna della ricetta (assicurarsi che la copertura stia a 45°C dopo la destabilizzazione). Aggiungere la meringa amalgamata con la purea e per ultimo la panna semimontata. Versare negli appositi stampi e abbattere in negativo -18.",
+      "Cremoso al passion fruit: portare la purea con lo zucchero invertito a 50°C, aggiungere la gelatina idratata e strizzata. Versare il liquido sulla copertura fusa a 40°C, emulsionare per qualche minuto e completare con l'aggiunta della panna liquida fredda. Mixare ancora 1 min., porre in un contenitore e lasciar cristallizzare per 12 ore.",
+      "Salsa mou: cuocere a secco lo zucchero. Raggiunti i 175°C, decuocere con il burro a pomatoso e la panna portata ad ebollizione con la vaniglia. Filtrare e conservare in frigo.",
+      "Sable al cacao: unire tutti gli ingredienti in planetaria e con la foglia sabbiare il tutto. Versare su placca con carta da forno e cuocere a 160°C per 12 min. circa.",
+      "Meringa per semifreddo: cuocere a 121°C l'acqua con lo zucchero semolato. A parte iniziare a montare gli albumi, aggiungere il destrosio e infine lo zucchero cotto a 121°C. Montare sino a completo raffreddamento.",
+      "Spugna al Couer de Guanaja: sciogliere il cioccolato, portare acqua e zucchero a 50°C, versare sul cioccolato ed emulsionare. Aggiungere gli albumi, riemulsionare e versare in un sifone con 3 cariche CREAM. Spruzzarne 30g in un bicchiere di plastica e cuocere al microonde per 24 secondi. Abbattere a -18 e congelare. Sformare al momento.",
+      "Arachidi caramellati: portare ad ebollizione acqua e zucchero, unire gli arachidi scaldati al microonde e girare senza allontanarsi dalla fiamma sino a completa sabbiatura.",
+      "Gelatina passione: unire tutti gli ingredienti in un pentolino, portare ad ebollizione e versare rapidamente in un vassoio non superando i 2 mm di altezza. Porre in frigo per circa 1 ora. Tagliare."
+    ],
+    note: "Ricetta Giuseppe Amato. Preparazione su 2 giorni. Il cremoso va cristallizzato 12 ore. La spugna va abbattuta e sformata al momento del servizio."
+  },
+  {
+    id: 6, name: "Bavarese mascarpone e caff\u00e8", category: "Caff\u00e8",
+    difficolta: "Alta", tempo: "12 h + riposo", porzioni: 10,
+    allergeni: ["Uova", "Latte", "Glutine"],
+    components: [
+      { name: "Bavarese mascarpone", ingredients: [
+        { name: "Panna", amount: 1000, unit: "ml" },
+        { name: "Latte", amount: 1000, unit: "ml" },
+        { name: "Tuorli", amount: 400, unit: "g" },
+        { name: "Zucchero", amount: 240, unit: "g" },
+        { name: "Mascarpone", amount: 1000, unit: "g" },
+        { name: "Gelatina animale", amount: 55, unit: "g" },
+        { name: "Panna semimontata", amount: 1500, unit: "ml" },
+        { name: "Zucchero (per panna)", amount: 230, unit: "g" },
+      ]},
+      { name: "Meringhe caff\u00e8", ingredients: [
+        { name: "Caff\u00e8", amount: 100, unit: "g" },
+        { name: "Acqua", amount: 30, unit: "g" },
+        { name: "Caff\u00e8 solubile", amount: 10, unit: "g" },
+        { name: "Albumi", amount: 145, unit: "g" },
+        { name: "Albumina", amount: 9, unit: "g" },
+        { name: "Zucchero", amount: 80, unit: "g" },
+        { name: "Glicerina", amount: 3, unit: "g" },
+        { name: "Xantana", amount: 0.4, unit: "g" },
+      ]},
+      { name: "Cremoso caff\u00e8", ingredients: [
+        { name: "Panna", amount: 1000, unit: "ml" },
+        { name: "Latte", amount: 1000, unit: "ml" },
+        { name: "Jivara", amount: 1300, unit: "g" },
+        { name: "Tuorli", amount: 320, unit: "g" },
+        { name: "Zucchero", amount: 200, unit: "g" },
+        { name: "Fogli gel bronze", amount: 9, unit: "pz" },
+        { name: "Caff\u00e8 solubile", amount: 25, unit: "g" },
+      ]},
+      { name: "Crumble cacao", ingredients: [
+        { name: "Burro", amount: 230, unit: "g" },
+        { name: "Zucchero", amount: 200, unit: "g" },
+        { name: "Farina 00", amount: 360, unit: "g" },
+        { name: "Cacao", amount: 100, unit: "g" },
+        { name: "Sale", amount: 2, unit: "g" },
+      ]},
+      { name: "Biscuit cacao", ingredients: [
+        { name: "Albume", amount: 500, unit: "g" },
+        { name: "Zucchero", amount: 480, unit: "g" },
+        { name: "Tuorli", amount: 330, unit: "g" },
+        { name: "Fecola di patate o maizena", amount: 55, unit: "g" },
+        { name: "Cacao", amount: 130, unit: "g" },
+      ]},
+      { name: "Gelato caff\u00e8", ingredients: [
+        { name: "Latte", amount: 2000, unit: "ml" },
+        { name: "Panna", amount: 920, unit: "g" },
+        { name: "Latte in polvere", amount: 165, unit: "g" },
+        { name: "Zucchero", amount: 230, unit: "g" },
+        { name: "Destrosio", amount: 78, unit: "g" },
+        { name: "Glucosio", amount: 120, unit: "g" },
+        { name: "Zucchero invertito", amount: 30, unit: "g" },
+        { name: "Caff\u00e8 in polvere", amount: 40, unit: "g" },
+        { name: "Kahlua o Tia Maria", amount: 80, unit: "g" },
+        { name: "Espressi", amount: 8, unit: "pz" },
+        { name: "Glicerina", amount: 15, unit: "g" },
+      ]},
+    ],
+    steps: [
+      "Bavarese mascarpone: preparare una crema inglese con latte, panna, tuorli e zucchero portando a 82\u00b0C. Sciogliervi la gelatina precedentemente idratata. Raffreddare a 40\u00b0C e incorporare il mascarpone mixando fino a ottenere un composto liscio. Alleggerire con la panna semimontata con lo zucchero rimanente. Colare negli stampi e abbattere.",
+      "Meringhe caff\u00e8: sciogliere il caff\u00e8 solubile nel caff\u00e8 caldo. Montare gli albumi con l'albumina, lo zucchero, la glicerina e la xantana. Aggiungere il caff\u00e8 a filo continuando a montare fino a meringa ferma. Modellare e essiccare in forno a 80\u00b0C per 3-4 ore.",
+      "Cremoso caff\u00e8: portare panna e latte a ebollizione con il caff\u00e8 solubile. Versare sui tuorli mescolati con lo zucchero e cuocere a 82\u00b0C. Aggiungere la gelatina idratata e versare sulla Jivara tritata. Emulsionare bene, colare e cristallizzare 12 ore in frigo.",
+      "Crumble cacao: sabbiare tutti gli ingredienti in planetaria con la foglia. Sgranare su placca e cuocere a 160\u00b0C per 12 minuti. Raffreddare e conservare in contenitore ermetico.",
+      "Biscuit cacao: montare gli albumi con lo zucchero a neve ferma. Incorporare i tuorli a filo, poi le polveri setacciate con movimenti delicati dal basso verso l'alto. Stendere su placca a 1 cm e cuocere a 180\u00b0C per 10-12 minuti.",
+      "Gelato caff\u00e8: portare latte, panna e latte in polvere a 40\u00b0C. Aggiungere gli zuccheri e portare a 85\u00b0C. Raffreddare rapidamente a 4\u00b0C. Aggiungere caff\u00e8 in polvere, espressi, Kahlua e glicerina. Maturare 6 ore in frigo e mantecare."
+    ],
+    note: "Procedimenti integrati sulla base della tecnica standard \u2014 verificare prima dell'utilizzo in formazione. Il gelato richiede maturazione di almeno 6 ore. La bavarese va abbattuta prima del servizio."
+  },
+  {
+    id: 7, name: "Latte, biscotto e caff\u00e8", category: "Caff\u00e8",
+    difficolta: "Alta", tempo: "24 h + riposo", porzioni: 10,
+    allergeni: ["Uova", "Latte", "Glutine", "Frutta a guscio", "Soia"],
+    components: [
+      { name: "Mousse bianca", ingredients: [
+        { name: "Latte intero", amount: 200, unit: "g" },
+        { name: "Gelatina", amount: 7, unit: "g" },
+        { name: "Cioccolato bianco", amount: 300, unit: "g" },
+        { name: "Panna semimontata", amount: 400, unit: "g" },
+        { name: "Vaniglia", amount: 1, unit: "pz" },
+      ]},
+      { name: "Cremoso al caff\u00e8", ingredients: [
+        { name: "Panna", amount: 500, unit: "g" },
+        { name: "Latte", amount: 500, unit: "g" },
+        { name: "Cioccolato latte 40%", amount: 650, unit: "g" },
+        { name: "Tuorli", amount: 145, unit: "g" },
+        { name: "Zucchero", amount: 100, unit: "g" },
+        { name: "Gelatina", amount: 10, unit: "g" },
+        { name: "Caff\u00e8 solubile", amount: 12, unit: "g" },
+      ]},
+      { name: "Salsa cioccolato fondente", ingredients: [
+        { name: "Latte", amount: 250, unit: "g" },
+        { name: "Panna", amount: 250, unit: "g" },
+        { name: "Tuorli", amount: 100, unit: "g" },
+        { name: "Trealosio", amount: 40, unit: "g" },
+        { name: "Cioccolato fondente 70%", amount: 180, unit: "g" },
+        { name: "Cacao amaro", amount: 15, unit: "g" },
+      ]},
+      { name: "Gelato alla gru\u00e8 di cacao", ingredients: [
+        { name: "Latte", amount: 1000, unit: "ml" },
+        { name: "Panna", amount: 300, unit: "g" },
+        { name: "Zucchero", amount: 200, unit: "g" },
+        { name: "Glucosio", amount: 50, unit: "g" },
+        { name: "Destrosio", amount: 70, unit: "g" },
+        { name: "Latte in polvere", amount: 110, unit: "g" },
+        { name: "Stabilizzante per gelati", amount: 10, unit: "g" },
+        { name: "Gru\u00e8 di cacao", amount: 200, unit: "g" },
+      ]},
+      { name: "Sabl\u00e9 al cacao", ingredients: [
+        { name: "Burro", amount: 230, unit: "g" },
+        { name: "Zucchero", amount: 200, unit: "g" },
+        { name: "Farina", amount: 360, unit: "g" },
+        { name: "Cacao", amount: 100, unit: "g" },
+        { name: "Sale", amount: 2, unit: "g" },
+      ]},
+      { name: "Biscotto", ingredients: [
+        { name: "Farina", amount: 250, unit: "g" },
+        { name: "Burro", amount: 150, unit: "g" },
+        { name: "Tuorlo", amount: 50, unit: "g" },
+        { name: "Zucchero a velo", amount: 100, unit: "g" },
+        { name: "Vaniglia", amount: 1, unit: "pz" },
+        { name: "Scorza limone", amount: 5, unit: "g" },
+        { name: "Scorza arancio", amount: 5, unit: "g" },
+      ]},
+      { name: "Spuma al biscotto", ingredients: [
+        { name: "Latte", amount: 500, unit: "g" },
+        { name: "Panna", amount: 100, unit: "g" },
+        { name: "Biscotti sbriciolati", amount: 500, unit: "g" },
+        { name: "Gomma xantana", amount: 3, unit: "g" },
+      ]},
+      { name: "Biscotto liofilizzato", ingredients: [
+        { name: "Latte di soia", amount: 500, unit: "g" },
+        { name: "Vaniglia", amount: 2, unit: "pz" },
+        { name: "Scorza limone", amount: 5, unit: "g" },
+        { name: "Scorza arancia", amount: 5, unit: "g" },
+        { name: "Sale", amount: 1, unit: "g" },
+        { name: "Agar agar", amount: 5, unit: "g" },
+      ]},
+      { name: "Nocciole caramellate", ingredients: [
+        { name: "Nocciole", amount: 256, unit: "g" },
+        { name: "Zucchero", amount: 256, unit: "g" },
+        { name: "Acqua", amount: 376, unit: "g" },
+      ]},
+      { name: "Biscuit nocciola", ingredients: [
+        { name: "Albume", amount: 330, unit: "g" },
+        { name: "Zucchero", amount: 330, unit: "g" },
+        { name: "Albumina", amount: 30, unit: "g" },
+        { name: "Cioccolato fondente 70%", amount: 285, unit: "g" },
+        { name: "Farina nocciola", amount: 320, unit: "g" },
+      ]},
+      { name: "Tuille al cacao", ingredients: [
+        { name: "Cacao", amount: 15, unit: "g" },
+        { name: "Farina", amount: 225, unit: "g" },
+        { name: "Burro morbido", amount: 150, unit: "g" },
+        { name: "Albume", amount: 150, unit: "g" },
+        { name: "Sale", amount: 2, unit: "g" },
+        { name: "Zucchero a velo", amount: 150, unit: "g" },
+      ]},
+    ],
+    steps: [
+      "Mousse bianca: portare il latte a bollore e aggiungere la gelatina precedentemente idratata. Versare sulla cioccolata parzialmente fusa, emulsionare tutto e aggiungere la panna semimontata alla ganache che abbia una temperatura di 38-40\u00b0C. Colare e abbattere.",
+      "Cremoso al caff\u00e8: portare latte e panna a bollore. Frustare i tuorli con lo zucchero e il caff\u00e8 solubile. Versare una parte del liquido caldo sui tuorli e riportare sul fuoco cuocendo fino a 84\u00b0C. Filtrare sulla cioccolata fusa con la gelatina idratata. Versare in una placca a freddare per 12 ore a +4\u00b0C.",
+      "Salsa cioccolato fondente: portare latte e panna a bollore e versare sui tuorli e trealosio amalgamati. Riportare sul fuoco e cuocere fino a 84\u00b0C. Versare sul cioccolato fuso e al cacao e mixare. Lasciare a +4\u00b0C per 12h.",
+      "Gelato alla gru\u00e8 di cacao: tostare la gru\u00e8 di cacao a 160\u00b0C per 10 min. e versare nel latte. Chiudere in una busta sottovuoto e mettere nella vasca ad ultrasuoni per un ciclo da 90 minuti. Filtrare e riportare a peso iniziale il latte, aggiungere la panna e latte in polvere. Mischiare le polveri e aggiungerle al latte e panna quando raggiungono i 40\u00b0C. Scaldare fino all'82\u00b0C. Ritirare a far riposare 24h a +4\u00b0C. Mantecare.",
+      "Sabl\u00e9 al cacao: unire il burro, lo zucchero, la farina, il cacao e il sale in planetaria e con la foglia fare sabbiare. Versare in una placca da pasticceria e cuocere a 160\u00b0C per 10-13 minuti.",
+      "Biscotto: versare nella ciotola della planetaria il burro freddo con la farina e sabbiare. Aggiungere i tuorli e lo zucchero insieme agli aromi e impastare. Lasciare riposare 2 ore a +4\u00b0C. Stendere e cuocere a 160\u00b0C per 15-20 minuti.",
+      "Spuma al biscotto: versare in una busta sottovuoto il latte con i biscotti e lasciare riposare 2 ore. Filtrare e pesare 300g del latte, aggiungere il restante degli ingredienti e mixare. Versare in un sifone e caricare.",
+      "Biscotto liofilizzato: versare tutti gli ingredienti in una pentola e portare a bollore. Versare negli stampi e abbattere. Liofilizzare e conservare in contenitore ermetico con sali di silicio.",
+      "Nocciole caramellate: versare in una pentola acqua e zucchero e portare a bollore. Versare le nocciole e lasciare cuocere nello sciroppo per 10 min. Scolare e versare su una placca e cuocere a 160\u00b0C per 15 min. girando ogni 5 min.",
+      "Biscuit nocciola: montare gli albumi con l'albumina e lo zucchero. Quando la meringa \u00e8 pronta versarvi la farina di nocciola e la cioccolata fusa. Stendere su placca e infornare a 190\u00b0C per 5 min. con la valvola chiusa, poi abbassare a 170\u00b0C e cuocere per ulteriori 5-10 min. con la valvola aperta.",
+      "Tuille al cacao: lavorare il burro con lo zucchero a velo, aggiungere la farina con il cacao e il sale, poi l'albume. Amalgamare e conservare in frigo. Spatolare nello stampo desiderato e cuocere in forno a 160\u00b0C per 10-15 minuti."
+    ],
+    note: "Ricetta complessa su 2 giorni. Il gelato alla gru\u00e8 richiede vasca ad ultrasuoni e 24h di maturazione."
+  }
+];
+
+let recipes = [];
+let currentId = null;
+let currentPortions = 4;
+let activeCategory = 'Tutti';
+
+function load() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    recipes = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(defaultRecipes));
+  } catch(e) { recipes = JSON.parse(JSON.stringify(defaultRecipes)); }
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes)); } catch(e) {}
+}
+
+function getCategories() {
+  const cats = [...new Set(recipes.map(r => r.category))];
+  return ['Tutti', ...cats];
+}
+
+function getFiltered() {
+  let list = recipes;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  if (q) list = list.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
+  if (activeCategory !== 'Tutti') list = list.filter(r => r.category === activeCategory);
+  return list;
+}
+
+function renderSidebar() {
+  const cats = getCategories();
+  document.getElementById('catFilter').innerHTML = cats.map(c =>
+    `<span class="cat-pill ${c === activeCategory ? 'active' : ''}" onclick="setCategory('${c}')">${c}</span>`
+  ).join('');
+  const filtered = getFiltered();
+  document.getElementById('recipeList').innerHTML = filtered.length === 0
+    ? '<div style="padding:1rem 1.5rem;font-size:11px;color:rgba(255,255,255,0.3);">Nessuna ricetta trovata</div>'
+    : filtered.map(r => `
+      <div class="recipe-item ${r.id === currentId ? 'active' : ''}" onclick="selectRecipe(${r.id})">
+        <div class="r-name">${r.name}</div>
+        <div class="r-cat">${r.category}</div>
+      </div>`).join('');
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  renderSidebar();
+}
+
+function filterRecipes() { renderSidebar(); }
+
+function selectRecipe(id) {
+  currentId = id;
+  const r = recipes.find(x => x.id === id);
+  currentPortions = r.porzioni;
+  renderSidebar();
+  renderMain();
+  if (window.innerWidth <= 768) toggleMenu();
+}
+
+function fmt(amount, base) {
+  const v = amount * currentPortions / base;
+  return Number.isInteger(v) ? v : parseFloat(v.toFixed(1));
+}
+
+function renderMain() {
+  const r = recipes.find(x => x.id === currentId);
+  if (!r) {
+    document.getElementById('mainContent').innerHTML = `<div class="empty"><p>Seleziona una ricetta</p><small>oppure aggiungine una nuova</small></div>`;
+    return;
+  }
+  document.getElementById('mainContent').innerHTML = `
+    <div class="recipe-hero">
+      <div class="recipe-hero-top">
+        <div>
+          <div class="recipe-name">${r.name}</div>
+          <div class="badges">
+            <span class="badge badge-cat">${r.category}</span>
+            <span class="badge badge-diff">${r.difficolta}</span>
+            <span class="badge badge-time">${r.tempo}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-faint);letter-spacing:0.1em;text-align:center;margin-bottom:6px;">PORZIONI</div>
+          <div class="portion-ctrl">
+            <button onclick="changePortions(-1)">−</button>
+            <div class="p-count">${currentPortions}</div>
+            <button onclick="changePortions(1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="recipe-content">
+      <div class="section-title">Ingredienti</div>
+      ${r.components.map(comp => `
+        <div class="component-block">
+          <div class="component-name">${comp.name}</div>
+          ${comp.ingredients.map(ing => `
+            <div class="ing-row">
+              <span class="ing-name">${ing.name}</span>
+              <span class="ing-amount">${fmt(ing.amount, r.porzioni)} ${ing.unit}</span>
+            </div>`).join('')}
+        </div>`).join('')}
+      <div class="section-title">Procedimento</div>
+      <div class="steps-list">
+        ${r.steps.map((s,i) => `
+          <div class="step-row">
+            <div class="step-n">${i+1}</div>
+            <div class="step-text">${s}</div>
+          </div>`).join('')}
+      </div>
+      ${r.note ? `<div class="section-title">Note tecniche</div><div class="note-box">${r.note}</div>` : ''}
+      ${r.allergeni && r.allergeni.length ? `
+        <div class="section-title">Allergeni</div>
+        <div class="allg-list">${r.allergeni.map(a => `<span class="allg-tag">${a}</span>`).join('')}</div>` : ''}
+      <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+        <button onclick="deleteRecipe(${r.id})" style="font-size:11px;color:var(--red);background:transparent;border:1px solid #f5c5c5;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.05em;">Elimina ricetta</button>
+      </div>
+    </div>`;
+}
+
+function changePortions(d) {
+  currentPortions = Math.max(1, currentPortions + d);
+  renderMain();
+}
+
+function deleteRecipe(id) {
+  if (!confirm('Eliminare questa ricetta?')) return;
+  recipes = recipes.filter(r => r.id !== id);
+  save();
+  currentId = recipes.length ? recipes[0].id : null;
+  if (currentId) currentPortions = recipes[0].porzioni;
+  renderSidebar();
+  renderMain();
+}
+
+function showAddModal() {
+  document.getElementById('addModal').style.display = 'flex';
+  ['f-name','f-cat','f-diff','f-time','f-ing','f-steps','f-allg','f-note'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-port').value = 4;
+}
+
+function closeModal() {
+  document.getElementById('addModal').style.display = 'none';
+}
+
+function saveRecipe() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Inserisci il nome della ricetta'); return; }
+  const rawIngs = document.getElementById('f-ing').value.trim();
+  const ingredients = rawIngs ? rawIngs.split('\n').filter(l => l.trim()).map(l => {
+    const parts = l.split('|').map(p => p.trim());
+    return { name: parts[0] || l, amount: parseFloat(parts[1]) || 0, unit: parts[2] || '' };
+  }) : [];
+  const steps = document.getElementById('f-steps').value.trim().split('\n').filter(l => l.trim());
+  const allgRaw = document.getElementById('f-allg').value.trim();
+  const newRecipe = {
+    id: Date.now(),
+    name,
+    category: document.getElementById('f-cat').value.trim() || 'Altro',
+    difficolta: document.getElementById('f-diff').value.trim() || '—',
+    tempo: document.getElementById('f-time').value.trim() || '—',
+    porzioni: parseInt(document.getElementById('f-port').value) || 4,
+    allergeni: allgRaw ? allgRaw.split(',').map(a => a.trim()).filter(Boolean) : [],
+    components: [{ name: 'Ingredienti', ingredients }],
+    steps,
+    note: document.getElementById('f-note').value.trim()
+  };
+  recipes.push(newRecipe);
+  save();
+  currentId = newRecipe.id;
+  currentPortions = newRecipe.porzioni;
+  closeModal();
+  renderSidebar();
+  renderMain();
+}
+
+function toggleMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+load();
+if (recipes.length) { currentId = recipes[0].id; currentPortions = recipes[0].porzioni; }
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>
